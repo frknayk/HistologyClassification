@@ -7,19 +7,25 @@ import torchvision.models as models
 class ResNet18Classifier(nn.Module):
     def __init__(self, num_classes, pretrained=True):
         super(ResNet18Classifier, self).__init__()
-        self.resnet = models.resnet18(pretrained=pretrained)
-        num_features = self.resnet.fc.in_features
-        self.resnet.fc = nn.Sequential(
+        model_conv = models.resnet18(weights='IMAGENET1K_V1')
+        for param in model_conv.parameters():
+            param.requires_grad = False
+        num_features = model_conv.fc.in_features
+        model_conv.fc = nn.Sequential(
             nn.Linear(num_features, 512),
             nn.ReLU(),
-            nn.Dropout(0.5),
+            nn.Dropout(0.4),
+            nn.Linear(512, 512),
+            nn.ReLU(),
+            nn.Dropout(0.4),
             nn.Linear(512, num_classes)
         )
-        # Add Batch Normalization
         self.model = nn.Sequential(
-            self.resnet,
+            model_conv,
             nn.BatchNorm1d(4)  # Applying BatchNorm to the output of the classifier
         )
+        # self.model = model_conv
 
     def forward(self, x):
         return self.model(x)
+

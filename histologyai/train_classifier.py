@@ -21,6 +21,8 @@ from sklearn.metrics import (
     precision_recall_curve,
     roc_auc_score)
 
+import os
+import yaml
 
 # Configure the logger
 coloredlogs.install(level=logging.INFO)
@@ -205,7 +207,7 @@ class ClassificationTrainer:
         wandb.init(project="Histology" ,name=experiment_manager.experiment_name, 
             config=self.config, dir="logs")
         core(model,criterion,optimizer, experiment_manager)
-        logger.warn("Training is finished with following results:")
+        logger.warning("Training is finished with following results:")
 
 
 def early_stop(val_loss_list, patience=5, delta=0.0):
@@ -230,35 +232,45 @@ def early_stop(val_loss_list, patience=5, delta=0.0):
     
 
 if __name__ == "__main__":
-    # # Load configuration from YAML and initiate training
-    # import argparse
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument("--config", 
-    #     default="classification/configs/cifar10.yaml", 
-    #     help="Path to the configuration YAML file")
-    # args = parser.parse_args()
-    # TODO: Make evaluation function common
-    config = {
-        "experiment_name":"ResNet50Classifier_SGD_128batch",
-        "model":{
-            "architecture":"ResNet50Classifier",
-            "num_classes":4
-        },
-        "training": {
-            "batch_size":128,
-            "epochs":100,
-        },
-        "optimizer_config": {
-            "learning_rate": 1e-4,
-            # "type":"Adam",
-            # "betas": [0.9, 0.999]
-            "type":"SGD",
-            "momentum": 0.9
-        },
-        "evaluation":{
-            "batch_size":32
-        },
-    }
+    # Load configuration from YAML and initiate training
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", 
+        default="resnet50_ADAM.yaml", 
+        help="Name of the configuration YAML file")
+    args = parser.parse_args()
+
+    # Get the path to the config folder under the histologyai package
+    config_folder = os.path.join(os.path.dirname(__file__), 'configs')
+    # Load the configuration file
+    config_file_path = os.path.join(config_folder, 'config.yaml')
+    with open(config_file_path, 'r') as config_file:
+        config = yaml.safe_load(config_file)
+
+
+
+    # # TODO: Make evaluation function common
+    # config = {
+    #     "experiment_name":"DeepClassifier_ADAM_128batch",
+    #     "model":{
+    #         "architecture":"DeepClassifier",
+    #         "num_classes":4
+    #     },
+    #     "training": {
+    #         "batch_size":128,
+    #         "epochs":100,
+    #     },
+    #     "optimizer_config": {
+    #         "learning_rate": 1e-4,
+    #         "type":"Adam",
+    #         "betas": [0.9, 0.999]
+    #         # "type":"SGD",
+    #         # "momentum": 0.9
+    #     },
+    #     "evaluation":{
+    #         "batch_size":32
+    #     },
+    # }
 
     trainer = ClassificationTrainer(config)
     trainer.train()
