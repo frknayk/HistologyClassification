@@ -1,84 +1,65 @@
+import torch
 from torch.utils.data import DataLoader, random_split
 from torchvision.datasets import ImageFolder
 import torchvision.transforms as transforms
-import torch
-from sklearn.model_selection import train_test_split
 
 torch.manual_seed(17)
 
-# Define data transformations including augmentation
-train_transform = transforms.Compose([
-    transforms.RandomHorizontalFlip(p=0.4),
-    transforms.RandomVerticalFlip(p=0.4),
-    transforms.RandomRotation(degrees=(0, 180)),
-    transforms.TenCrop(224*2),
-    transforms.ToTensor(),
-    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-])
-val_transform = transforms.Compose([
-    transforms.Resize((224*2, 224*2)),
-    transforms.ToTensor(),
-    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-])
-test_transform = transforms.Compose([
-    transforms.Resize((224*2, 224*2)),
-    transforms.ToTensor(),
-    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-])
+class ImageClassificationDataset:
+    def __init__(self, config):
+        self.config = config.data
+        self._create_transforms()
 
-def create_data_loaders(
-        path_dataset='data/Histology_Dataset/Train/',
-        batch_size_train=32,
-        batch_size_eval=32,
-        use_test=True):
-    if use_test:
-        return create_data_loaders_with_test(path_dataset, batch_size_train, batch_size_eval)
-    return create_data_loaders_without_test(path_dataset, batch_size_train, batch_size_eval)
+    def _create_transforms(self):
+        data_transforms = {
+            "train": transforms.Compose([
+                transforms.RandomHorizontalFlip(p=self.config.transform.RandomHorizontalFlip),
+                transforms.RandomVerticalFlip(p=self.config.transform.RandomVerticalFlip),
+                transforms.RandomRotation(degrees=self.config.transform.RandomRotation),
+                transforms.TenCrop(self.config.transform.resize),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=self.config.transform.normalization_params.train.mean,
+                                     std=self.config.transform.normalization_params.train.std),
+            ]),
+            "validation": transforms.Compose([
+                transforms.Resize((self.config.transform.TenCrop,self.config.transform.TenCrop)),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=self.config.transform.normalization_params.train.mean,
+                                     std=self.config.transform.normalization_params.train.std),
+            ]),
+            "test": transforms.Compose([
+                transforms.Resize((self.config.transform.resize,self.config.transform.resize)),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=self.config.transform.normalization_params.train.mean,
+                                     std=self.config.transform.normalization_params.train.std),
+            ]),
+        }
+        self.data_transforms = data_transforms
 
 
-def create_data_loaders_with_test(
-        path_dataset='data/Histology_Dataset/Train/',
-        batch_size_train=32,
-        batch_size_eval=32):
-    # Load entire dataset using ImageFolder
-    full_dataset = ImageFolder(root=path_dataset)
-    # Split dataset into train, validation, and test sets
-    train_ratio = 0.8
-    val_ratio = 0.1
-    # Split dataset into train, validation, and test sets
-    train_size = int(train_ratio * len(full_dataset))
-    val_size = int(val_ratio * len(full_dataset))
-    test_size = len(full_dataset) - train_size - val_size
-    # Create dataset with seed for deterministic training
-    generator1 = torch.Generator().manual_seed(42)
-    train_dataset, val_dataset, test_dataset = random_split(full_dataset,
-        [train_size, val_size, test_size], generator=generator1)
-    # Apply transformations to datasets
-    train_dataset.dataset.transform = train_transform
-    val_dataset.dataset.transform = val_transform
-    test_dataset.dataset.transform = test_transform
-    # Create data loaders for train, validation, and test datasets
-    train_loader = DataLoader(train_dataset, batch_size=batch_size_train, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size_eval)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size_eval)
-    return train_loader, val_loader, test_loader, full_dataset.classes
-
-def create_data_loaders_without_test(
-        path_dataset='data/Histology_Dataset/Train/',
-        batch_size_train=32,
-        batch_size_eval=32):
-    # Load entire dataset using ImageFolder
-    full_dataset = ImageFolder(root=path_dataset)
-    # Split dataset into train, validation, and test sets
-    train_size = int(0.9 * len(full_dataset))
-    val_size = int(0.1 * len(full_dataset))
-    generator1 = torch.Generator().manual_seed(42)
-    train_dataset, val_dataset = random_split(full_dataset, 
-        [train_size, val_size], generator=generator1)
-    # Apply transformations to datasets
-    train_dataset.dataset.transform = train_transform
-    val_dataset.dataset.transform = val_transform
-    # Create data loaders for train, validation, and test datasets
-    train_loader = DataLoader(train_dataset, batch_size=batch_size_train, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size_eval)
-    return train_loader,val_loader, None, full_dataset.classes
+    def create_data_loaders(self, batch_size_train, batch_size_eval):
+        # Load entire dataset using ImageFolder
+        full_dataset = ImageFolder(root=self.config.path_train_dataset)
+        # Split dataset into train, validation, and test sets
+        train_ratio = self.config.split_ratio.train_ratio
+        val_ratio = self.config.split_ratio.val_ratio
+        # Split dataset into train, validation, and test sets
+        train_size = int(train_ratio * len(full_dataset))
+        val_size = int(val_ratio * len(full_dataset))
+        test_size = len(full_dataset) - train_size - val_size
+        # Create dataset with seed for deterministic training
+        generator = torch.Generator().manual_seed(self.config.random_seed)
+        train_dataset, val_dataset, test_dataset = random_split(full_dataset,
+            [train_size, val_size, test_size], generator=generator)
+        # Apply transformations to datasets
+        self._create_transforms()
+        train_dataset.dataset.transform = self.data_transforms["train"]
+        val_dataset.dataset.transform = self.data_transforms["validation"]
+        test_dataset.dataset.transform = self.data_transforms["test"]
+        # Create data loaders for train, validation, and test datasets
+        train_loader = DataLoader(train_dataset, 
+            batch_size=batch_size_train, shuffle=True)
+        val_loader = DataLoader(val_dataset, batch_size=batch_size_eval)
+        test_loader = DataLoader(test_dataset, batch_size=batch_size_eval)
+        return train_loader, val_loader, test_loader, full_dataset.classes
+        

@@ -1,4 +1,4 @@
-# Histology Data Classification Project
+# Histology Image Classification
 
 ## Overview
 
@@ -109,7 +109,7 @@ https://wandb.ai/YourWandbUserName/Histology
 
 5. Evaluation:
 
-- Evaluate your trained model on a separate test dataset using the evaluate.py script.
+- Evaluate your trained model on a separate test dataset using the `evaluate.py` script.
 
 ## Dataset
 
@@ -158,8 +158,6 @@ By automating the classification of histological images, it can:
 ## TODO-List
 
 - Add docstring to each function
-- Add yaml parser
-- Add config for each setting
 - Implement evaluate.py
 - Add test set visualization for W&B to evaluate.py as a table(img vs prediction(prob))
 - (Not urgent) hyperparameter_tuning.py

@@ -11,6 +11,7 @@ runs/
 Logs/
 logs/
 data/
+papers/
 
 # Distribution / packaging
 .Python

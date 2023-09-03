@@ -1,4 +1,6 @@
 import logging
+import os
+import yaml
 
 import torch
 import torch.nn as nn
@@ -10,19 +12,16 @@ import coloredlogs
 import importlib
 
 from munch import DefaultMunch
-from histologyai.dataset_loader import create_data_loaders
-from histologyai.utils import ExperimentManager
 import matplotlib.pyplot as plt
 
 from sklearn.metrics import (
     f1_score, 
     roc_curve, 
     auc, 
-    precision_recall_curve,
-    roc_auc_score)
+    precision_recall_curve)
 
-import os
-import yaml
+from histologyai.utils import ExperimentManager
+from histologyai.dataset_loader import ImageClassificationDataset
 
 # Configure the logger
 coloredlogs.install(level=logging.INFO)
@@ -33,12 +32,15 @@ class ClassificationTrainer:
     def __init__(self, config:dict):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.config = DefaultMunch.fromDict(config)
+        # If early-stop is given by config, check validation loss history as criteria
         if self.config.training.early_stop:
             self.val_lost_list = []
-        self.train_loader, self.val_loader, self.test_loader, self.classes = create_data_loaders(
+        # Create image classification dataset
+        image_classification_dataset = ImageClassificationDataset(self.config)
+        self.train_loader, self.val_loader, self.test_loader, self.classes = \
+            image_classification_dataset.create_data_loaders(
             batch_size_train=self.config.training.batch_size,
-            batch_size_eval=self.config.evaluation.batch_size,
-            use_test=True)
+            batch_size_eval=self.config.evaluation.batch_size)
 
     def _initialize_optimizer(self, model):
         optimizer_config = self.config.optimizer_config
@@ -60,7 +62,7 @@ class ClassificationTrainer:
         # Dynamically import the custom model class
         custom_model_module = importlib.import_module(f"histologyai.models.{model_arch}")
         ModelClass = getattr(custom_model_module, model_arch)
-        model = ModelClass(num_classes=self.config.model.num_classes)
+        model = ModelClass(num_classes=self.config.data.num_classes)
         model.to(self.device)
         return model
 
@@ -128,8 +130,8 @@ class ClassificationTrainer:
     def calculate_log_metrics_test(self, model, criterion):
         if self.test_loader is None:
             return
-        logger.info("Calculating metrics for test dataset..")
         metrics = self.eval_model(model, criterion, self.test_loader)
+        logger.info("Calculating metrics for test dataset..")
         test_loss = metrics.running_loss / len(self.test_loader.sampler)
         test_acc = metrics.running_corrects.double().item() / len(self.test_loader.sampler)
         f1 = f1_score(metrics.all_labels, metrics.all_preds, average='weighted')
@@ -239,39 +241,12 @@ if __name__ == "__main__":
         default="resnet50_ADAM.yaml", 
         help="Name of the configuration YAML file")
     args = parser.parse_args()
-
     # Get the path to the config folder under the histologyai package
     config_folder = os.path.join(os.path.dirname(__file__), 'configs')
     # Load the configuration file
-    config_file_path = os.path.join(config_folder, 'config.yaml')
+    config_file_path = os.path.join(config_folder, args.config)
     with open(config_file_path, 'r') as config_file:
         config = yaml.safe_load(config_file)
-
-
-
-    # # TODO: Make evaluation function common
-    # config = {
-    #     "experiment_name":"DeepClassifier_ADAM_128batch",
-    #     "model":{
-    #         "architecture":"DeepClassifier",
-    #         "num_classes":4
-    #     },
-    #     "training": {
-    #         "batch_size":128,
-    #         "epochs":100,
-    #     },
-    #     "optimizer_config": {
-    #         "learning_rate": 1e-4,
-    #         "type":"Adam",
-    #         "betas": [0.9, 0.999]
-    #         # "type":"SGD",
-    #         # "momentum": 0.9
-    #     },
-    #     "evaluation":{
-    #         "batch_size":32
-    #     },
-    # }
-
+    # Run classification
     trainer = ClassificationTrainer(config)
     trainer.train()
-
