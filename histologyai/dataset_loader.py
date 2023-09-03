@@ -28,9 +28,10 @@ class ImageClassificationDataset:
     def __init__(self, config):
         self.config = config.data
         self._create_transforms()
-        self.dataset_inference = InferenceDataset(
+        inference_data = InferenceDataset(
             root_dir=self.config.path_inference_dataset,
             transform=self.data_transforms["test"])
+        self.inference_loader = DataLoader(inference_data, batch_size=1, shuffle=False)
 
     def _create_transforms(self):
         data_transforms = {

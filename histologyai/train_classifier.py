@@ -9,7 +9,7 @@ import numpy as np
 
 import wandb
 import coloredlogs
-import importlib
+
 
 from munch import DefaultMunch
 import matplotlib.pyplot as plt
@@ -20,8 +20,9 @@ from sklearn.metrics import (
     auc, 
     precision_recall_curve)
 
-from histologyai.utils import ExperimentManager
-from histologyai.dataset_loader import ImageClassificationDataset
+from histologyai.utils import ExperimentManager, create_module
+from histologyai.dataset_loader import ImageClassificationDataset, InferenceDataset
+from histologyai.evaluate import log_inference_result, log_test_result
 
 # Configure the logger
 coloredlogs.install(level=logging.INFO)
@@ -36,9 +37,9 @@ class ClassificationTrainer:
         if self.config.training.early_stop:
             self.val_lost_list = []
         # Create image classification dataset
-        image_classification_dataset = ImageClassificationDataset(self.config)
+        self.image_classification_dataset = ImageClassificationDataset(self.config)
         self.train_loader, self.val_loader, self.test_loader, self.classes = \
-            image_classification_dataset.create_data_loaders(
+            self.image_classification_dataset.create_data_loaders(
             batch_size_train=self.config.training.batch_size,
             batch_size_eval=self.config.evaluation.batch_size)
 
@@ -58,11 +59,9 @@ class ClassificationTrainer:
         return optimizer
 
     def _initialize_model(self):
-        model_arch = self.config.model.architecture
-        # Dynamically import the custom model class
-        custom_model_module = importlib.import_module(f"histologyai.models.{model_arch}")
-        ModelClass = getattr(custom_model_module, model_arch)
-        model = ModelClass(num_classes=self.config.data.num_classes)
+        model = create_module(
+            model_arch=self.config.model.architecture,
+            num_classes=self.config.data.num_classes)
         model.to(self.device)
         return model
 
@@ -160,7 +159,7 @@ class ClassificationTrainer:
         wandb.log({"Confusion Matrix":cm})
 
     def train(self):
-        def core(model, criterion, optimizer, experiment_manager):           
+        def core(model, criterion, optimizer, experiment_manager):   
             for epoch in range(self.config.training.epochs):
                 # Training phase
                 model.train()
@@ -182,12 +181,15 @@ class ClassificationTrainer:
                     "train_loss":train_loss,
                     "train_acc":train_acc})
                 val_loss, val_acc, f1 = self.calculate_log_metrics_val(model, criterion)
-                experiment_manager.save_checkpoint(
-                    model=model,
-                    optimizer=optimizer,
-                    epoch=epoch+1,
-                    loss=train_loss,
-                    accuracy=val_acc)
+                experiment_manager.save_checkpoint({
+                    "epoch": epoch+1,
+                    "model_state_dict": model.state_dict(),
+                    "optimizer_state_dict": optimizer.state_dict(),
+                    "training_loss": train_loss,
+                    "val_accuracy": val_acc,
+                    "architecture": self.config.model.architecture,
+                    "num_classes": len(self.classes),
+                    "classes": self.classes})
                 # Use the logger to display colored messages
                 logger.info(
                     f"Epoch [{epoch+1}/{self.config.training.epochs}] - "
@@ -201,13 +203,26 @@ class ClassificationTrainer:
                         logger.critical("Early-stop detected, aborting train...")
                         return
             self.calculate_log_metrics_test(model, criterion)
+            log_inference_result(model, 
+                self.image_classification_dataset.inference_loader, 
+                self.device, self.classes)
+            # # Load the best model according to validation accuracy
+            # logger.warning("Loading best model according to validation accuracy metric..")
+            # checkpoint_dict = torch.load(experiment_manager.best_model_path)
+            # best_model = create_module(
+            #     model_arch=self.config.model.architecture,
+            #     num_classes=self.config.data.num_classes)
+            # best_model.to(self.device)
+            # best_model.load_state_dict(checkpoint_dict["model_state_dict"])
+            # log_test_result(best_model, self.test_loader, self.device, self.classes)
+
         model = self._initialize_model()
         criterion = nn.CrossEntropyLoss()
         optimizer = self._initialize_optimizer(model)
         experiment_manager = ExperimentManager(self.config.experiment_name)
         # Initialize Weights and Biases
         wandb.init(project="Histology" ,name=experiment_manager.experiment_name, 
-            config=self.config, dir="logs")
+            config=self.config, dir="logs_deneme")
         core(model,criterion,optimizer, experiment_manager)
         logger.warning("Training is finished with following results:")
 
@@ -238,7 +253,7 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", 
-        default="resnet50_ADAM.yaml", 
+        default="resnet50.yaml", 
         help="Name of the configuration YAML file")
     args = parser.parse_args()
     # Get the path to the config folder under the histologyai package

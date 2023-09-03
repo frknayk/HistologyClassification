@@ -8,7 +8,20 @@ from histologyai.dataset_loader import InferenceDataset
 from histologyai.utils import convert_path
 from pathlib import Path
 
-def log_inference_model(model, test_loeader, device):
+def log_inference_result(model, test_loader, device, classes):
+    """Run inference on trained model and unlabelled data, log results as wand table"""
+    # assume a model has returned predictions on four images
+    # with the following fields available:
+    # - the image id
+    # - the image pixels, wrapped in a wandb.Image()
+    # - the model's predicted label
+    # my_data = [
+    #   [0, wandb.Image("img_0.jpg"), 0],
+    #   [1, wandb.Image("img_1.jpg"), 8],
+    #   [2, wandb.Image("img_2.jpg"), 7],
+    #   [3, wandb.Image("img_3.jpg"), 1]
+    # ]
+    my_data = []
     model.eval()
     with torch.no_grad():
         for i, image in enumerate(test_loader):
@@ -17,17 +30,47 @@ def log_inference_model(model, test_loeader, device):
             _, predicted = torch.max(output, 1)
             # Bring the image back to the CPU for wandb logging
             image = image.cpu()
-            # Log the predicted class and probabilities to wandb
-            wandb.log({f"Test Image {i + 1} Prediction": int(predicted)})
-            wandb.log({f"Test Image {i + 1} Probabilities": [float(p) for p in probabilities[0]]})
-            # Log the image along with predictions as an artifact
-            image_artifact = wandb.Image(image.squeeze())
-            wandb.log({f"Test Image {i + 1}": image_artifact})
+            new_data = [i, wandb.Image(image.squeeze()), classes[predicted]]
+            my_data.append(new_data)
+    # create a wandb.Table() with corresponding columns
+    columns=["id", "image", "prediction"]
+    test_table = wandb.Table(data=my_data, columns=columns)
+    wandb.log({"Inference Results":test_table})
+
+def log_test_result(model, test_loader, device, classes):
+    """Run inference on trained model and labelled data, log results as wand table"""
+    # assume a model has returned predictions on four images
+    # with the following fields available:
+    # - the image id
+    # - the image pixels, wrapped in a wandb.Image()
+    # - the model's predicted label
+    # - the ground truth label
+    # my_data = [
+    #   [0, wandb.Image("img_0.jpg"), 0, 1],
+    #   [1, wandb.Image("img_1.jpg"), 8, 6],
+    #   [2, wandb.Image("img_2.jpg"), 7, 5],
+    #   [3, wandb.Image("img_3.jpg"), 1, 3]
+    # ]
+    my_data = []
+    model.eval()
+    with torch.no_grad():
+        for i, (image,label) in enumerate(test_loader):
+            output = model(image.to(device))
+            probabilities = torch.softmax(output, dim=1)
+            _, predicted = torch.max(output, 1)
+            # Bring the image back to the CPU for wandb logging
+            image = image.cpu()
+            new_data = [i, wandb.Image(image.squeeze()), classes[predicted], classes[image.target]]
+            my_data.append(new_data)
+    # create a wandb.Table() with corresponding columns
+    columns=["id", "image", "prediction", "ground_truth"]
+    test_table = wandb.Table(data=my_data, columns=columns)
+    wandb.log({"Test Results":test_table})
 
 
 if __name__ == "__main__":    
     # Load the trained model checkpoint
-    model_checkpoint = convert_path('logs\\checkpoints\\ResNet50Classifier_ADAM_128batch_20230902_192503\\best_0.9062.pt')
+    model_checkpoint = convert_path('logs\\checkpoints\\DENEME_resnet50_Histology_ADAM_Batch128_20230903_145241\\best_0.2812.pt')
     from histologyai.models.ResNet50Classifier import ResNet50Classifier
     model = ResNet50Classifier(4)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -43,9 +86,8 @@ if __name__ == "__main__":
     test_data = InferenceDataset('data/Histology_Dataset/Test', transform=test_transform)
     test_loader = DataLoader(test_data, batch_size=1, shuffle=False)
     # Initialize wandb
-    wandb.init(project="HistologyInference",dir="logs/inference/")
+    wandb.init(project="HistologyInference",dir="logs_inference_deneme/")
     # Perform predictions and log images with predictions to wandb
-    log_inference_model(model, test_loader, device)
-
+    log_inference_result(model, test_loader, device)
     # Finish the wandb run
     wandb.finish()

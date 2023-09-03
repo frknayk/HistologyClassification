@@ -1,4 +1,4 @@
-experiment_name: resnet50_Histology_ADAM_Batch128
+experiment_name: DENEME_resnet50_Histology_ADAM_Batch128
 
 # Model configuration
 model:
@@ -7,7 +7,7 @@ model:
 
 training:
   batch_size: 128
-  epochs: 2
+  epochs: 1
   # early_stop:
   #   patience: 5
   #   delta: 0.005
@@ -22,7 +22,7 @@ optimizer_config:
 
 # Evaluation configuration
 evaluation:
-  batch_size: 64
+  batch_size: 32
 
 
 # Data configuration, consumed by dataset_loader.py

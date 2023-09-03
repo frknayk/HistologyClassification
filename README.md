@@ -157,7 +157,6 @@ By automating the classification of histological images, it can:
 
 ## TODO-List
 
+- Add different normalization techniques for histology image classification
+- Make log_test_result work
 - Add docstring to each function
-- Implement evaluate.py
-- Add test set visualization for W&B to evaluate.py as a table(img vs prediction(prob))
-- (Not urgent) hyperparameter_tuning.py
