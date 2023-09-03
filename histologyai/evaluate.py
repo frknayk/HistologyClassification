@@ -86,8 +86,8 @@ if __name__ == "__main__":
     test_data = InferenceDataset('data/Histology_Dataset/Test', transform=test_transform)
     test_loader = DataLoader(test_data, batch_size=1, shuffle=False)
     # Initialize wandb
-    wandb.init(project="HistologyInference",dir="logs_inference_deneme/")
-    # Perform predictions and log images with predictions to wandb
-    log_inference_result(model, test_loader, device)
+    wandb.init(project="HistologyInference",dir="logs")
+    # # Perform predictions and log images with predictions to wandb
+    # log_inference_result(model, test_loader, device)
     # Finish the wandb run
     wandb.finish()

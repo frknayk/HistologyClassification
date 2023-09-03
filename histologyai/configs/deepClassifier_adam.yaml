@@ -1,19 +1,19 @@
-experiment_name: deepClassifier_Histology_ADAM_Batch128
+experiment_name: deepClassifier_ADAM_Batch128
 
 # Model configuration
 model:
   # Model architecture name and class name must macthed.
-  architecture: deepClassifier_SGD
+  architecture: DeepClassifier
 
 training:
   batch_size: 128
-  epochs: 2
+  epochs: 50
   # early_stop:
   #   patience: 5
   #   delta: 0.005
 
 optimizer_config:
-  learning_rate: 0.0001
+  learning_rate: 0.001
   type: Adam
   betas: [0.9, 0.999]
   # type: SGD
@@ -22,14 +22,14 @@ optimizer_config:
 
 # Evaluation configuration
 evaluation:
-  batch_size: 64
+  batch_size: 32
 
 
 # Data configuration, consumed by dataset_loader.py
 data:
   name: Histology_Dataset
   path_train_dataset: data/Histology_Dataset/Train # Dataset path for training
-  inference_dataset: data/Histology_Dataset/Test # Dataset path for inference(no labels)
+  path_inference_dataset: data/Histology_Dataset/Test # Dataset path for inference(no labels)
   num_classes: 4
   split_ratio:
     train_ratio: 0.8 # 80% for training
@@ -50,6 +50,9 @@ data:
     RandomRotation: [0, 180] # degrees
     resize: 448
   random_seed: 42
+
+
+
 
 
 

@@ -40,7 +40,13 @@ git clone https://github.com/frknayk/HistologyClassification.git
 cd HistologyClassification
 ```
 
-2. Create a Conda environment and install the required dependencies:
+2. Install project as python-package, necessary for path management
+
+```bash
+pip install -e .
+```
+
+3. Create a Conda environment and install the required dependencies:
 
 ```bash
 conda env create -f environment.yml
@@ -95,10 +101,22 @@ Explore training metrics, logs, and visualizations in real-time.
 
 3. Training:
 
-- Use the `train.py` script to start training:
+- Use the `train_classifier.py` script to start training:
 
 ```bash
-python train.py --config config.yaml
+python histologyai/train_classifier.py --config config.yaml
+```
+
+- Running all experiment configs together: Put all configuration files under `configs/` folder then call `run_all_experiments()` function from `train_classifier.py` script.
+
+```bash
+python histologyai/train_classifier.py --run_all True
+```
+
+- Or you can directly run the training script in the root path after modifying the config files inside the script:
+
+```bash
+python train_all.py
 ```
 
 4. Explore W&B UI to track and compare experiments
@@ -151,9 +169,11 @@ By automating the classification of histological images, it can:
 - data/: Dataset files or links to datasets.
 - models/: Model architectures and related utilities.
 - configs/: Configuration YAML files for datasets.
+- logs/ : Consists wandb/ and checkpoints/ folder belonging to experiment runs.
 - environment.yaml: Conda environment specification.
 - requirements.txt: Additional Python package requirements.
 - README.md: Project overview and setup instructions.
+
 
 ## TODO-List
 

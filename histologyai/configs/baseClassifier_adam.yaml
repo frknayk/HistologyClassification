@@ -1,0 +1,58 @@
+experiment_name: baseClassifier_ADAM_Batch128
+
+# Model configuration
+model:
+  # Model architecture name and class name must macthed.
+  architecture: BaseHistologyClassifier
+
+training:
+  batch_size: 128
+  epochs: 100
+  # early_stop:
+  #   patience: 5
+  #   delta: 0.005
+
+optimizer_config:
+  learning_rate: 0.001
+  type: Adam
+  betas: [0.9, 0.999]
+  # type: SGD
+  # momentum: 0.9
+  # weight_decay: 1e-4
+
+# Evaluation configuration
+evaluation:
+  batch_size: 32
+
+
+# Data configuration, consumed by dataset_loader.py
+data:
+  name: Histology_Dataset
+  path_train_dataset: data/Histology_Dataset/Train # Dataset path for training
+  path_inference_dataset: data/Histology_Dataset/Test # Dataset path for inference(no labels)
+  num_classes: 4
+  split_ratio:
+    train_ratio: 0.8 # 80% for training
+    val_ratio: 0.1 # 10% for testing and 10% for validation
+  transform:
+    normalization_params:
+      train:
+        mean: [0.5, 0.5, 0.5]
+        std: [0.5, 0.5, 0.5]
+      test:
+        mean: [0.5, 0.5, 0.5]
+        std: [0.5, 0.5, 0.5]
+      validation:
+        mean: [0.5, 0.5, 0.5]
+        std: [0.5, 0.5, 0.5]
+    RandomHorizontalFlip: 0.4 # probability
+    RandomVerticalFlip: 0.4 # probability
+    RandomRotation: [0, 180] # degrees
+    resize: 448
+  random_seed: 42
+
+
+
+
+
+

@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 
 class ClassificationTrainer:
     def __init__(self, config:dict):
+        logger.info("Running experiment: %s",config["experiment_name"])
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.config = DefaultMunch.fromDict(config)
         # If early-stop is given by config, check validation loss history as criteria
@@ -112,7 +113,7 @@ class ClassificationTrainer:
         }
         return DefaultMunch.fromDict(eval_metrics)
 
-    def calculate_log_metrics_val(self, model, criterion):
+    def calculate_log_metrics_val(self, model, criterion,log_wandb=True):
         metrics = self.eval_model(model, criterion, self.val_loader)
         val_acc = metrics.running_corrects.double().item() / len(self.val_loader.sampler)
         val_loss = metrics.running_loss / len(self.val_loader.sampler)
@@ -123,7 +124,8 @@ class ClassificationTrainer:
             "val_acc":val_acc,
             "val_f1_score":f1
         }
-        wandb.log(validation_metrics)
+        if log_wandb:
+            wandb.log(validation_metrics)
         return val_loss, val_acc, f1
 
     def calculate_log_metrics_test(self, model, criterion):
@@ -215,14 +217,13 @@ class ClassificationTrainer:
             # best_model.to(self.device)
             # best_model.load_state_dict(checkpoint_dict["model_state_dict"])
             # log_test_result(best_model, self.test_loader, self.device, self.classes)
-
         model = self._initialize_model()
         criterion = nn.CrossEntropyLoss()
         optimizer = self._initialize_optimizer(model)
         experiment_manager = ExperimentManager(self.config.experiment_name)
         # Initialize Weights and Biases
         wandb.init(project="Histology" ,name=experiment_manager.experiment_name, 
-            config=self.config, dir="logs_deneme")
+            config=self.config, dir="logs")
         core(model,criterion,optimizer, experiment_manager)
         logger.warning("Training is finished with following results:")
 
@@ -246,14 +247,14 @@ def early_stop(val_loss_list, patience=5, delta=0.0):
     if np.mean(recent_losses) - best_loss > delta:
         return True
     return False
-    
+
 
 if __name__ == "__main__":
     # Load configuration from YAML and initiate training
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", 
-        default="resnet50.yaml", 
+        default="resnet50_adam.yaml", 
         help="Name of the configuration YAML file")
     args = parser.parse_args()
     # Get the path to the config folder under the histologyai package

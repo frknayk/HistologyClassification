@@ -1,24 +1,32 @@
-experiment_name: DENEME_resnet50_Histology_ADAM_Batch128
+experiment_name: TuneHyperparams
+
+# This configuration will try each model architecture with different batch sizes and optimizers.
+# The best model will be selected based on the validation accuracy.
 
 # Model configuration
 model:
   # Model architecture name and class name must macthed.
-  architecture: ResNet50Classifier
+  architectures: [
+    ResNet50Classifier, 
+    ResNet18Classifier,
+    DeepClassifier,
+    BaseHistologyClassifier]
+
 
 training:
-  batch_size: 128
-  epochs: 1
-  # early_stop:
-  #   patience: 5
-  #   delta: 0.005
+  batch_size: [64,128]
+  epochs: 30 # First 30 epoch is enough
 
-optimizer_config:
-  learning_rate: 0.0001
-  type: Adam
-  betas: [0.9, 0.999]
-  # type: SGD
-  # momentum: 0.9
-  # weight_decay: 1e-4
+
+optimizer_configs:
+  config_1:
+    type: Adam
+    learning_rate: 0.0001
+    betas: [0.9, 0.999]
+  config_2:
+    type: SGD
+    momentum: 0.9
+    weight_decay: 1e-4
 
 # Evaluation configuration
 evaluation:
