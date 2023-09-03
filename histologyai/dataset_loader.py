@@ -1,14 +1,36 @@
+import os
 import torch
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader, random_split, Dataset
 from torchvision.datasets import ImageFolder
 import torchvision.transforms as transforms
+from PIL import Image
 
 torch.manual_seed(17)
+
+
+class InferenceDataset(Dataset):
+    def __init__(self, root_dir, transform=None):
+        self.root_dir = root_dir
+        self.transform = transform
+        self.image_paths = sorted(os.listdir(root_dir))
+
+    def __len__(self):
+        return len(self.image_paths)
+
+    def __getitem__(self, idx):
+        img_name = os.path.join(self.root_dir, self.image_paths[idx])
+        image = Image.open(img_name)
+        if self.transform:
+            image = self.transform(image)
+        return image
 
 class ImageClassificationDataset:
     def __init__(self, config):
         self.config = config.data
         self._create_transforms()
+        self.dataset_inference = InferenceDataset(
+            root_dir=self.config.path_inference_dataset,
+            transform=self.data_transforms["test"])
 
     def _create_transforms(self):
         data_transforms = {

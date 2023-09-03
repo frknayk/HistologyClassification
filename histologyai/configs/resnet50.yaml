@@ -29,7 +29,7 @@ evaluation:
 data:
   name: Histology_Dataset
   path_train_dataset: data/Histology_Dataset/Train # Dataset path for training
-  inference_dataset: data/Histology_Dataset/Test # Dataset path for inference(no labels)
+  path_inference_dataset: data/Histology_Dataset/Test # Dataset path for inference(no labels)
   num_classes: 4
   split_ratio:
     train_ratio: 0.8 # 80% for training
