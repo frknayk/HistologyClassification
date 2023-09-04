@@ -15,9 +15,11 @@ conda_env = "seg"
 
 # List of configuration files to run
 config_files = [
-    "resnet50_adam.yaml",
-    "resnet50_sgd.yaml",
-    "baseClassifier_adam.yaml"
+    # "resnet50_adam.yaml",
+    # "resnet50_sgd.yaml",
+    # "resnet18_adam.yaml",
+    # "resnet18_sgd.yaml",
+    "baseClassifier_adam.yaml",
     "deepClassifier_adam.yaml"
 ]
 

@@ -135,7 +135,7 @@ The project relies on a dataset containing histology images. These images are or
 
 ```text
 - Benign: Histological regions categorized as non-cancerous or benign tissues.
-- In Situ: Represents tissues where abnormal cells are confined to their original location.
+- In Situ: Represents tissues where malignant cells are present as a tumor but have not metastasized, or invaded beyond the layer or tissue type where it arose
 - Invasive: Histological regions where abnormal cells have spread to nearby tissues.
 - Normal: Normal, healthy tissue samples used for reference and comparison.
 ```

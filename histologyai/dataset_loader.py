@@ -84,5 +84,4 @@ class ImageClassificationDataset:
             batch_size=batch_size_train, shuffle=True)
         val_loader = DataLoader(val_dataset, batch_size=batch_size_eval)
         test_loader = DataLoader(test_dataset, batch_size=batch_size_eval)
-        return train_loader, val_loader, test_loader, full_dataset.classes
-        
+        return train_loader, val_loader, test_loader, full_dataset.classes        

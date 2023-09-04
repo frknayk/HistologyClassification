@@ -1,9 +1,9 @@
-experiment_name: resnet50_SGD_Batch128
+experiment_name: resnet18_ADAM_Batch128
 
 # Model configuration
 model:
   # Model architecture name and class name must macthed.
-  architecture: ResNet50Classifier
+  architecture: ResNet18Classifier
 
 training:
   batch_size: 128
@@ -14,11 +14,11 @@ training:
 
 optimizer_config:
   learning_rate: 0.0001
-  # type: Adam
-  # betas: [0.9, 0.999]
-  type: SGD
-  momentum: 0.9
-  weight_decay: 1e-4
+  type: Adam
+  betas: [0.9, 0.999]
+  # type: SGD
+  # momentum: 0.9
+  # weight_decay: 1e-4
 
 # Evaluation configuration
 evaluation:
