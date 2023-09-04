@@ -178,5 +178,3 @@ By automating the classification of histological images, it can:
 ## TODO-List
 
 - Add different normalization techniques for histology image classification
-- Make log_test_result work
-- Add docstring to each function
