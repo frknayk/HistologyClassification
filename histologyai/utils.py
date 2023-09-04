@@ -5,6 +5,7 @@ import glob
 import importlib
     
 def convert_path(path):
+    """Replace windows path chars with Unix or vice-versa"""
     if os.name == 'nt':  # Windows
         return path.replace('/', '\\')
     else:  # Linux
@@ -12,6 +13,30 @@ def convert_path(path):
 
 
 class ExperimentManager:
+    """
+    A class for managing experiment checkpoints and best model selection.
+
+    This class is responsible for creating and organizing experiment directories, generating
+    unique experiment names, saving experiment checkpoints, and selecting the best model based on
+    validation accuracy.
+
+    Args:
+        exp_name (str): The base name for the experiment.
+
+    Attributes:
+        experiment_name (str): The generated unique name for the experiment.
+        experiment_dir (str): The directory path where experiment checkpoints are stored.
+        best_model_path (str): The file path to the best-performing model checkpoint.
+        best_acc (float): The highest validation accuracy achieved by the model.
+    
+    Methods:
+        _generate_experiment_name(exp_name): Generates a unique experiment name with a timestamp.
+        save_checkpoint(checkpoint_dict, num_best_models=5): Saves a model checkpoint and updates
+            the best model if the current checkpoint has higher validation accuracy.
+
+    Raises:
+        None
+    """
     def __init__(self, exp_name):
         self.experiment_name = self._generate_experiment_name(exp_name)
         self.experiment_dir = os.path.join("logs", "checkpoints", self.experiment_name)
@@ -68,6 +93,31 @@ class ExperimentManager:
                 os.remove(best_models[0])
             return best_model_filename
 
+    @staticmethod
+    def load_checkpoint(model, optimizer, filename):
+        """
+        Load model checkpoint from a file.
+        
+        Args:
+            model (torch.nn.Module): The PyTorch model to load the weights into.
+            optimizer (torch.optim.Optimizer): The optimizer to load the state into.
+            filename (str): The path to the checkpoint file.
+        
+        Returns:
+            epoch (int): The last saved epoch.
+            loss (float): The loss at the last saved epoch.
+            accuracy (float): The accuracy at the last saved epoch.
+        """
+        checkpoint = torch.load(filename)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        epoch = checkpoint['epoch']
+        loss = checkpoint['loss']
+        accuracy = checkpoint['accuracy']
+        print(f"Checkpoint loaded from {filename}")
+        return epoch, loss, accuracy
+        
+
 def parse_checkpoint_acc(checkpoint):
     # Split the string using the path separator (either "\\" or "/") to handle different platforms
     parts = checkpoint.split(os.path.sep)
@@ -78,28 +128,7 @@ def parse_checkpoint_acc(checkpoint):
             acc = float(best_part.split('_')[1].split('.')[0])
             return acc
 
-def load_checkpoint(model, optimizer, filename):
-    """
-    Load model checkpoint from a file.
-    
-    Args:
-        model (torch.nn.Module): The PyTorch model to load the weights into.
-        optimizer (torch.optim.Optimizer): The optimizer to load the state into.
-        filename (str): The path to the checkpoint file.
-    
-    Returns:
-        epoch (int): The last saved epoch.
-        loss (float): The loss at the last saved epoch.
-        accuracy (float): The accuracy at the last saved epoch.
-    """
-    checkpoint = torch.load(filename)
-    model.load_state_dict(checkpoint['model_state_dict'])
-    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    epoch = checkpoint['epoch']
-    loss = checkpoint['loss']
-    accuracy = checkpoint['accuracy']
-    print(f"Checkpoint loaded from {filename}")
-    return epoch, loss, accuracy
+
 
 def create_module(model_arch:str, num_classes:int):
     """Dynamically import the custom model class"""

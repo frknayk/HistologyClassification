@@ -9,6 +9,29 @@ torch.manual_seed(17)
 
 
 class InferenceDataset(Dataset):
+    """
+    A custom PyTorch Dataset class for inference purposes.
+
+    This class allows for loading and preprocessing individual images from a specified directory
+    for inference tasks, such as model predictions on new data.
+
+    Args:
+        root_dir (str): The root directory containing inference images.
+        transform (callable, optional): A data transformation function to apply to the loaded images.
+            Default is None.
+
+    Attributes:
+        root_dir (str): The root directory containing inference images.
+        transform (callable): The data transformation function to preprocess images.
+        image_paths (list): A list of sorted file paths to inference images.
+
+    Methods:
+        __len__(): Returns the total number of inference images.
+        __getitem__(idx): Loads and transforms an inference image at the specified index.
+
+    Raises:
+        None
+    """
     def __init__(self, root_dir, transform=None):
         self.root_dir = root_dir
         self.transform = transform
@@ -25,6 +48,28 @@ class InferenceDataset(Dataset):
         return image
 
 class ImageClassificationDataset:
+    """
+    A class for managing image classification datasets and their transformations.
+
+    This class handles the creation of data transforms and provides an inference loader for
+    evaluating models on new data.
+
+    Args:
+        config (dict): A configuration dictionary containing dataset-related parameters.
+
+    Attributes:
+        config (dict): The dataset configuration extracted from the provided configuration.
+        data_transforms (dict): A dictionary of data transformations for train, validation, and test
+            datasets.
+        inference_loader (DataLoader): DataLoader for inference purposes on new data.
+
+    Methods:
+        _create_transforms(): Creates and stores data transformation pipelines for different
+            dataset splits.
+
+    Raises:
+        None
+    """
     def __init__(self, config):
         self.config = config.data
         self._create_transforms()

@@ -30,6 +30,32 @@ logger = logging.getLogger(__name__)
 
 
 class ClassificationTrainer:
+    """
+    A class for training and evaluating image classification models.
+
+    This class is responsible for initializing and managing the training process of image
+    classification models. 
+    It accepts a configuration dictionary specifying various parameters
+    and options for the training experiment.
+
+    Args:
+        config (dict): A dictionary containing configuration parameters for the training experiment.
+
+    Attributes:
+        device (torch.device): The device (CPU or GPU) used for training, determined based on
+            GPU availability.
+        config (DefaultMunch): The experiment configuration parsed into a DefaultMunch object.
+        val_lost_list (list): A list to store validation loss history for early stopping criteria.
+        image_classification_dataset (ImageClassificationDataset): An instance of
+            ImageClassificationDataset for managing the dataset.
+        train_loader (DataLoader): DataLoader for the training dataset.
+        val_loader (DataLoader): DataLoader for the validation dataset.
+        test_loader (DataLoader): DataLoader for the test dataset.
+        classes (list): A list of class labels in the dataset.
+
+    Raises:
+        None
+    """
     def __init__(self, config:dict):
         logger.info("Running experiment: %s",config["experiment_name"])
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -114,6 +140,26 @@ class ClassificationTrainer:
         return DefaultMunch.fromDict(eval_metrics)
 
     def calculate_log_metrics_val(self, model, criterion,log_wandb=True):
+        """
+        Calculate and optionally log evaluation metrics for the validation dataset.
+
+        This function evaluates the specified neural network model on the validation dataset and
+        calculates various performance metrics, including validation loss, validation accuracy, and
+        F1 score. These metrics can be optionally logged using Weights and Biases.
+
+        Parameters
+        ----------
+            model (torch.nn.Module): The neural network model to evaluate.
+            criterion (torch.nn.Module): The loss function used for evaluation.
+            log_wandb (bool, optional): Whether to log the calculated metrics using Weights and Biases.
+                Default is True.
+
+        Returns:
+            tuple: A tuple containing the calculated validation loss, validation accuracy, and F1 score.
+
+        Raises:
+            None
+        """
         metrics = self.eval_model(model, criterion, self.val_loader)
         val_acc = metrics.running_corrects.double().item() / len(self.val_loader.sampler)
         val_loss = metrics.running_loss / len(self.val_loader.sampler)
@@ -129,6 +175,21 @@ class ClassificationTrainer:
         return val_loss, val_acc, f1
 
     def calculate_log_metrics_test(self, model, criterion):
+        """
+        Calculate and log evaluation metrics for the test dataset.
+
+        This function evaluates the specified neural network model on the test dataset and calculates
+        various performance metrics, including test loss, test accuracy, F1 score, ROC AUC, PR AUC,
+        and confusion matrix. The calculated metrics are then logged using Weights and Biases.
+
+
+        Parameters
+        ----------
+        model : torch.nn.Module
+            The neural network model to evaluate.
+        criterion : torch.nn.Module
+            The loss function used for evaluation.
+        """
         if self.test_loader is None:
             return
         metrics = self.eval_model(model, criterion, self.test_loader)
@@ -161,6 +222,20 @@ class ClassificationTrainer:
         wandb.log({"Confusion Matrix":cm})
 
     def train(self):
+        """
+        Train the neural network model using the specified configuration and data loaders.
+
+        This function performs the training process for the neural network model. It iterates through
+        the specified number of epochs, performs training on the training data, logs training and
+        validation metrics, and optionally implements early stopping, also saves checkpoints and
+        logs results using Weights and Biases.
+
+        Returns:
+            None
+
+        Raises:
+            None
+        """
         def core(model, criterion, optimizer, experiment_manager):   
             for epoch in range(self.config.training.epochs):
                 # Training phase
